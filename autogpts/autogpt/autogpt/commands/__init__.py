@@ -7,3 +7,8 @@ COMMAND_CATEGORIES = [
     "autogpt.commands.system",
     "autogpt.commands.image_gen",
 ]
+
+MT_COMMAND_CATEGORIES = [
+    # "autogpt.commands.system",
+    "autogpt.commands.user_interaction",
+]

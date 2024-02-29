@@ -145,7 +145,7 @@ class Agent(
                     else ""
                 ),
             )
-            logger.debug(budget_msg)
+            logger.info(budget_msg)
             extra_messages.append(budget_msg)
 
         if include_os_info is None:
@@ -180,6 +180,8 @@ class Agent(
             llm_response["content"] = plugin.post_planning(
                 llm_response.get("content", "")
             )
+        
+        logger.info(f"[ {__file__} ] | Raw response: {llm_response}")
 
         (
             command_name,
@@ -211,11 +213,15 @@ class Agent(
         command_name: str,
         command_args: dict[str, str] = {},
         user_input: str = "",
+        **kwargs,
     ) -> ActionResult:
         result: ActionResult
+        
+        logger.info(f"[ {__file__} ] | execute with command: {command_name} args: {command_args}")
 
         if command_name == "human_feedback":
             result = ActionInterruptedByHuman(feedback=user_input)
+            logger.info(f"[ {__file__} ] | Human feedback result: {result}")
             self.log_cycle_handler.log_cycle(
                 self.ai_profile.ai_name,
                 self.created_at,
@@ -237,7 +243,9 @@ class Agent(
                     command_name=command_name,
                     arguments=command_args,
                     agent=self,
+                    **kwargs
                 )
+                logger.info(f"[ {__file__} ] | Command return: {return_value}")
 
                 # Intercept ContextItem if one is returned by the command
                 if type(return_value) is tuple and isinstance(
@@ -245,8 +253,8 @@ class Agent(
                 ):
                     context_item = return_value[1]
                     return_value = return_value[0]
-                    logger.debug(
-                        f"Command {command_name} returned a ContextItem: {context_item}"
+                    logger.info(
+                        f"[ {__file__} ] | Command {command_name} returned a ContextItem: {context_item}"
                     )
                     self.context.add(context_item)
 
@@ -255,8 +263,12 @@ class Agent(
                 raise
             except AgentException as e:
                 result = ActionErrorResult.from_exception(e)
-                logger.warning(
+                logger.error(
                     f"{command_name}({fmt_kwargs(command_args)}) raised an error: {e}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"command: {command_name} encountered unknown error: {e}"
                 )
 
             result_tlength = self.llm_provider.count_tokens(str(result), self.llm.name)
@@ -289,6 +301,7 @@ async def execute_command(
     command_name: str,
     arguments: dict[str, str],
     agent: Agent,
+    **kwargs,
 ) -> CommandOutput:
     """Execute the command and return the result
 
@@ -303,6 +316,8 @@ async def execute_command(
     # Execute a native command with the same name or alias, if it exists
     if command := agent.command_registry.get_command(command_name):
         try:
+            for k, v in arguments.items():
+                print(k, type(v), v)
             result = command(**arguments, agent=agent)
             if inspect.isawaitable(result):
                 return await result
@@ -314,6 +329,9 @@ async def execute_command(
 
     # Handle non-native commands (e.g. from plugins)
     if agent._prompt_scratchpad:
+        logger.info(
+            f"[ {__file__} ] | Prompt Scratchpad: {agent._prompt_scratchpad}"
+        )
         for name, command in agent._prompt_scratchpad.commands.items():
             if (
                 command_name == name

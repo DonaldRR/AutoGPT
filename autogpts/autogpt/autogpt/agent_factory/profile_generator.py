@@ -210,6 +210,8 @@ class AgentProfileGenerator(PromptStrategy):
                 constraints=arguments["directives"].get("constraints"),
                 resources=[],
             )
+            logger.debug(f"[ {__file__} ] | AIProfile:{ai_profile}")
+            logger.debug(f"[ {__file__} ] | AIDirectives:{ai_directives}")
         except KeyError:
             logger.debug(f"Failed to parse this response content: {response_content}")
             raise
@@ -229,9 +231,8 @@ async def generate_agent_profile_for_task(
     agent_profile_generator = AgentProfileGenerator(
         **AgentProfileGenerator.default_configuration.dict()  # HACK
     )
-
     prompt = agent_profile_generator.build_prompt(task)
-
+    # logger.info(f"Prompt for generating agent: {prompt}")
     # Call LLM with the string as user input
     output = (
         await llm_provider.create_chat_completion(
@@ -242,7 +243,7 @@ async def generate_agent_profile_for_task(
     ).response
 
     # Debug LLM Output
-    logger.debug(f"AI Config Generator Raw Output: {output}")
+    logger.info(f"[ {__file__} ] | AI Config Generator Raw Output: {output}")
 
     # Parse the output
     ai_profile, ai_directives = agent_profile_generator.parse_response_content(output)

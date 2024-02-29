@@ -94,8 +94,11 @@ class MyApp extends StatelessWidget {
           }
           String hostname = Uri.base.host;
 
-          if (snapshot.hasData && snapshot.data != null ||
-              hostname.contains('github.dev')) {
+          print('Snapshot.hasData=${snapshot.hasData}');
+          print('Snapshot.data=${snapshot.data}');
+          print('hostname=${hostname}');
+          // if (snapshot.hasData && snapshot.data != null ||
+          //     hostname.contains('github.dev')) {
             return MultiProvider(
               providers: [
                 ChangeNotifierProvider(
@@ -125,7 +128,7 @@ class MyApp extends StatelessWidget {
               ],
               child: MainLayout(),
             ); // User is signed in
-          }
+          // }
           return FirebaseAuthView(); // User is not signed in, show auth UI
         },
       ),

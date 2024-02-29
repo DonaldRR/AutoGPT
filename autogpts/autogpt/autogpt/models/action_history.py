@@ -130,6 +130,11 @@ class EpisodicActionHistory(BaseModel):
 
         self.current_episode.result = result
         self.cursor = len(self.episodes)
+    
+    def reset(self) -> None:
+        
+        self.episodes = []
+        self.cursor = 0
 
     def rewind(self, number_of_episodes: int = 0) -> None:
         """Resets the history to an earlier state.

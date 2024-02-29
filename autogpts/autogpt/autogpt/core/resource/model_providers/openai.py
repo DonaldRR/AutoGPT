@@ -52,7 +52,7 @@ class OpenAIModelName(str, enum.Enum):
     GPT3_v2_16k = "gpt-3.5-turbo-16k-0613"
     GPT3_v3 = "gpt-3.5-turbo-1106"
     GPT3_ROLLING = "gpt-3.5-turbo"
-    GPT3_ROLLING_16k = "gpt-3.5-turbo-16k"
+    GPT3_ROLLING_16k = "gpt-3.5-turbo-0125"
     GPT3 = GPT3_ROLLING
     GPT3_16k = GPT3_ROLLING_16k
 

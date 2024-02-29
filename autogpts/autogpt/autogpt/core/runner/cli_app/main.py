@@ -11,6 +11,7 @@ from autogpt.core.runner.client_lib.parser import (
     parse_agent_plan,
     parse_next_ability,
 )
+from autogpt.logs import color_logger
 
 
 async def run_auto_gpt(user_configuration: dict):
@@ -19,6 +20,7 @@ async def run_auto_gpt(user_configuration: dict):
     configure_root_logger()
 
     client_logger = get_client_logger()
+    color_logger(client_logger)
     client_logger.debug("Getting agent settings")
 
     agent_workspace = (

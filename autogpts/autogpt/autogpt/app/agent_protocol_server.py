@@ -42,7 +42,17 @@ from autogpt.file_workspace import (
 from autogpt.logs.utils import fmt_kwargs
 from autogpt.models.action_history import ActionErrorResult, ActionSuccessResult
 
+
 logger = logging.getLogger(__name__)
+
+
+# from .app import app
+app = FastAPI(
+    title="AutoGPT Server",
+    description="Forked from AutoGPT Forge; "
+    "Modified version of The Agent Protocol.",
+    version="v0.4",
+)
 
 
 class AgentProtocolServer:
@@ -59,15 +69,9 @@ class AgentProtocolServer:
 
     async def start(self, port: int = 8000, router: APIRouter = base_router):
         """Start the agent server."""
-        logger.debug("Starting the agent server...")
+        logger.info("Starting the agent server...")
         config = HypercornConfig()
         config.bind = [f"localhost:{port}"]
-        app = FastAPI(
-            title="AutoGPT Server",
-            description="Forked from AutoGPT Forge; "
-            "Modified version of The Agent Protocol.",
-            version="v0.4",
-        )
 
         # Add CORS middleware
         origins = [
@@ -83,13 +87,16 @@ class AgentProtocolServer:
             allow_headers=["*"],
         )
 
+
         app.include_router(router, prefix="/ap/v1")
         script_dir = os.path.dirname(os.path.realpath(__file__))
+
         frontend_path = (
             pathlib.Path(script_dir)
             .joinpath("../../../../frontend/build/web")
             .resolve()
         )
+        logger.info(f"Frontend Path {frontend_path}")
 
         if os.path.exists(frontend_path):
             app.mount("/app", StaticFiles(directory=frontend_path), name="app")
@@ -121,14 +128,16 @@ class AgentProtocolServer:
             input=task_request.input,
             additional_input=task_request.additional_input,
         )
-        logger.debug(f"Creating agent for task: '{task.input}'")
+        logger.info(f"[ {__file__} ] | Creating agent for task: '{task.input}'")
         task_agent = await generate_agent_for_task(
             task=task.input,
             app_config=self.app_config,
             llm_provider=self._get_task_llm_provider(task),
         )
+        logger.info(f"[ {__file__} ] | history: {task_agent.event_history}")
+
         agent_id = task_agent.state.agent_id = task_agent_id(task.task_id)
-        logger.debug(f"New agent ID: {agent_id}")
+        logger.info(f"[ {__file__} ] | New agent ID: {agent_id}")
         task_agent.attach_fs(self.app_config.app_data_dir / "agents" / agent_id)
         task_agent.state.save_to_json_file(task_agent.file_manager.state_file_path)
         return task
@@ -137,7 +146,7 @@ class AgentProtocolServer:
         """
         List all tasks that the agent has created.
         """
-        logger.debug("Listing all tasks...")
+        logger.info("Listing all tasks...")
         tasks, pagination = await self.db.list_tasks(page, pageSize)
         response = TaskListResponse(tasks=tasks, pagination=pagination)
         return response
@@ -146,7 +155,7 @@ class AgentProtocolServer:
         """
         Get a task by ID.
         """
-        logger.debug(f"Getting task with ID: {task_id}...")
+        logger.info(f"[ {__file__} ] | Getting task with ID: {task_id}...")
         task = await self.db.get_task(task_id)
         return task
 
@@ -156,14 +165,14 @@ class AgentProtocolServer:
         """
         List the IDs of all steps that the task has created.
         """
-        logger.debug(f"Listing all steps created by task with ID: {task_id}...")
+        logger.info(f"Listing all steps created by task with ID: {task_id}...")
         steps, pagination = await self.db.list_steps(task_id, page, pageSize)
         response = TaskStepsListResponse(steps=steps, pagination=pagination)
         return response
 
     async def execute_step(self, task_id: str, step_request: StepRequestBody) -> Step:
         """Create a step for the task."""
-        logger.debug(f"Creating a step for task with ID: {task_id}...")
+        logger.info(f"[ {__file__} ] | Creating a step for task with ID: {task_id}...")
 
         # Restore Agent instance
         task = await self.get_task(task_id)
@@ -172,6 +181,7 @@ class AgentProtocolServer:
             app_config=self.app_config,
             llm_provider=self._get_task_llm_provider(task),
         )
+        logger.info(f"[ {__file__} ] | history: {agent.event_history}")
 
         # According to the Agent Protocol spec, the first execute_step request contains
         #  the same task input as the parent create_task request.
@@ -187,6 +197,8 @@ class AgentProtocolServer:
 
         user_input = step_request.input if not is_init_step else ""
 
+        logger.info(f"[ {__file__} ] | step_request: {step_request}")
+
         if (
             not is_init_step
             and agent.event_history.current_episode
@@ -196,8 +208,8 @@ class AgentProtocolServer:
             execute_command_args = agent.event_history.current_episode.action.args
             execute_approved = not user_input
 
-            logger.debug(
-                f"Agent proposed command"
+            logger.info(
+                f"[ {__file__} ] | Agent proposed command"
                 f" {execute_command}({fmt_kwargs(execute_command_args)})."
                 f" User input/feedback: {repr(user_input)}"
             )
@@ -228,10 +240,12 @@ class AgentProtocolServer:
                     step_id=step.step_id,
                     output=execute_command_args["reason"],
                 )
+                logger.info(f"[ {__file__} ] | Update step with FINISH {finish.__name__}")
                 return step
 
             if execute_command == ask_user.__name__:  # HACK
                 execute_result = ActionSuccessResult(outputs=user_input)
+                logger.info(f"[ {__file__} ] | Last execution succeed")
                 agent.event_history.register_result(execute_result)
             elif not execute_command:
                 execute_result = None
@@ -242,12 +256,15 @@ class AgentProtocolServer:
                     status="running",
                 )
                 # Execute previously proposed action
+                logger.info(f"[ {__file__} ] | Executing last proposed action")
                 execute_result = await agent.execute(
                     command_name=execute_command,
                     command_args=execute_command_args,
                 )
+                logger.info(f"[ {__file__} ] | Last proposed action finished")
             else:
                 assert user_input
+                logger.info(f"[ {__file__} ] | Execute 'human_feedback' ? ")
                 execute_result = await agent.execute(
                     command_name="human_feedback",  # HACK
                     command_args={},
@@ -257,8 +274,9 @@ class AgentProtocolServer:
         # Propose next action
         try:
             next_command, next_command_args, raw_output = await agent.propose_action()
-            logger.debug(f"AI output: {raw_output}")
+            logger.info(f"[ {__file__} ] | Propose action with AI output: {raw_output}")
         except Exception as e:
+            logger.warning(f"[ {__file__} ] | Propose action error: {e}")
             step = await self.db.update_step(
                 task_id=task_id,
                 step_id=step.step_id,
@@ -284,6 +302,8 @@ class AgentProtocolServer:
             else next_command_args["question"]
         )
 
+        logger.info(f"[ {__file__} ] | step output: {output}")
+
         additional_output = {
             **(
                 {
@@ -305,6 +325,8 @@ class AgentProtocolServer:
             ),
             **raw_output,
         }
+
+        logger.info(f"[ {__file__} ] | step additional output: {output}")
 
         step = await self.db.update_step(
             task_id=task_id,

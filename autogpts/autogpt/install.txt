@@ -1,0 +1,20 @@
+  Attempting uninstall: websockets
+    Found existing installation: websockets 12.0
+    Uninstalling websockets-12.0:
+      Successfully uninstalled websockets-12.0
+  Attempting uninstall: tomlkit
+    Found existing installation: tomlkit 0.12.3
+    Uninstalling tomlkit-0.12.3:
+      Successfully uninstalled tomlkit-0.12.3
+  Attempting uninstall: starlette
+    Found existing installation: starlette 0.27.0
+    Uninstalling starlette-0.27.0:
+      Successfully uninstalled starlette-0.27.0
+  Attempting uninstall: pydantic
+    Found existing installation: pydantic 1.10.13
+    Uninstalling pydantic-1.10.13:
+      Successfully uninstalled pydantic-1.10.13
+  Attempting uninstall: fastapi
+    Found existing installation: fastapi 0.99.1
+    Uninstalling fastapi-0.99.1:
+      Successfully uninstalled fastapi-0.99.1

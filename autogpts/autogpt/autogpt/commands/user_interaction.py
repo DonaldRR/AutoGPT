@@ -30,3 +30,38 @@ async def ask_user(question: str, agent: Agent) -> str:
     print(f"\nQ: {question}")
     resp = await clean_input(agent.legacy_config, "A:")
     return f"The user's answer: '{resp}'"
+
+@command(
+    "respond",
+    (
+        "Respond your analysis/diagnosis in details to user if no more questions to ask"
+    ),
+    {
+        "diagnosis": JSONSchema(
+            type=JSONSchema.Type.STRING,
+            description="detailed diagnosis/analysis including suggestions",
+            required=True,
+        )
+    },
+    enabled=lambda config: not config.noninteractive_mode,
+)
+async def respond(diagnosis: str, agent: Agent) -> str:
+    return diagnosis
+
+@command(
+    "finish_dialogue",
+    (
+        "Summarize the previous dialogue when the the task could not be proceeded"
+        " or the dialogue is unrelated to the task"
+    ), 
+    {
+        "summary": JSONSchema(
+            type=JSONSchema.Type.STRING,
+            description="summary of dialogue and reason to finish",
+            required=True,
+        )
+    },
+)
+async def finish_dialogue(summary: str, agent: Agent) -> str:
+    print("!!!!!!!!!!!!!!!!", summary)
+    return summary

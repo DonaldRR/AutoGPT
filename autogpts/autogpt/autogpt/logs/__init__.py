@@ -10,6 +10,7 @@ from .log_cycle import (
     USER_INPUT_FILE_NAME,
     LogCycleHandler,
 )
+from .output_log import color_logger
 
 __all__ = [
     "configure_logging",
@@ -23,4 +24,5 @@ __all__ = [
     "SUPERVISOR_FEEDBACK_FILE_NAME",
     "USER_INPUT_FILE_NAME",
     "LogCycleHandler",
+    "color_logger"
 ]

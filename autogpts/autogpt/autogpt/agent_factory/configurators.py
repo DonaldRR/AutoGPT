@@ -2,13 +2,16 @@ from typing import Optional
 
 from autogpt.agent_manager import AgentManager
 from autogpt.agents.agent import Agent, AgentConfiguration, AgentSettings
-from autogpt.commands import COMMAND_CATEGORIES
+from autogpt.agents.mtagent import MTAgent
+from autogpt.commands import COMMAND_CATEGORIES, MT_COMMAND_CATEGORIES
 from autogpt.config import AIDirectives, AIProfile, Config
 from autogpt.core.resource.model_providers import ChatModelProvider
 from autogpt.logs.config import configure_chat_plugins
 from autogpt.models.command_registry import CommandRegistry
 from autogpt.plugins import scan_plugins
 
+import logging
+logger = logging.getLogger(__name__)
 
 def create_agent(
     task: str,
@@ -29,6 +32,7 @@ def create_agent(
         app_config=app_config,
         llm_provider=llm_provider,
     )
+    logger.debug(f"{__file__} | history: {agent.event_history}")
 
     agent.state.agent_id = AgentManager.generate_id(agent.ai_profile.ai_name)
 
@@ -39,11 +43,23 @@ def configure_agent_with_state(
     state: AgentSettings,
     app_config: Config,
     llm_provider: ChatModelProvider,
-) -> Agent:
+    agent_type: str = "Agent",
+) -> Agent | MTAgent:
+    # print(f"{__file__} | Current agent state {state}")
+
+    command_registry = None
+    if agent_type == "MTAgent":
+        command_registry=CommandRegistry.with_command_modules(
+            modules=MT_COMMAND_CATEGORIES,
+            config=app_config)
+        print("--------------Commands:", command_registry.commands)
+
     return _configure_agent(
         state=state,
         app_config=app_config,
         llm_provider=llm_provider,
+        command_registry=command_registry,
+        agent_type=agent_type
     )
 
 
@@ -54,7 +70,9 @@ def _configure_agent(
     ai_profile: Optional[AIProfile] = None,
     directives: Optional[AIDirectives] = None,
     state: Optional[AgentSettings] = None,
-) -> Agent:
+    command_registry: Optional[CommandRegistry] = None,
+    agent_type: str = "Agent",
+) -> Agent | MTAgent:
     if not (state or task and ai_profile and directives):
         raise TypeError(
             "Either (state) or (task, ai_profile, directives) must be specified"
@@ -64,10 +82,11 @@ def _configure_agent(
     configure_chat_plugins(app_config)
 
     # Create a CommandRegistry instance and scan default folder
-    command_registry = CommandRegistry.with_command_modules(
-        modules=COMMAND_CATEGORIES,
-        config=app_config,
-    )
+    if command_registry is None:
+        command_registry = CommandRegistry.with_command_modules(
+            modules=COMMAND_CATEGORIES,
+            config=app_config,
+        )
 
     agent_state = state or create_agent_state(
         task=task,
@@ -75,16 +94,24 @@ def _configure_agent(
         directives=directives,
         app_config=app_config,
     )
+    # print(f"{__file__} | Configured agent state {agent_state}")
 
     # TODO: configure memory
 
-    return Agent(
-        settings=agent_state,
-        llm_provider=llm_provider,
-        command_registry=command_registry,
-        legacy_config=app_config,
-    )
-
+    if agent_type == "Agent":
+        return Agent(
+            settings=agent_state,
+            llm_provider=llm_provider,
+            command_registry=command_registry,
+            legacy_config=app_config,
+        )
+    elif agent_type == "MTAgent":
+        return MTAgent(
+            settings=agent_state,
+            llm_provider=llm_provider,
+            command_registry=command_registry,
+            legacy_config=app_config,
+        )
 
 def create_agent_state(
     task: str,

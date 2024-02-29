@@ -56,7 +56,8 @@ class BaseAgentConfiguration(SystemConfiguration):
     allow_fs_access: bool = UserConfigurable(default=False)
 
     fast_llm: OpenAIModelName = UserConfigurable(default=OpenAIModelName.GPT3_16k)
-    smart_llm: OpenAIModelName = UserConfigurable(default=OpenAIModelName.GPT4)
+    smart_llm: OpenAIModelName = UserConfigurable(default=OpenAIModelName.GPT3_16k)
+    # smart_llm: OpenAIModelName = UserConfigurable(default=OpenAIModelName.GPT4)
     use_functions_api: bool = UserConfigurable(default=False)
 
     default_cycle_instruction: str = DEFAULT_TRIGGERING_PROMPT
@@ -198,10 +199,11 @@ class BaseAgent(Configurable[BaseAgentSettings], ABC):
 
         self._prompt_scratchpad: PromptScratchpad | None = None
 
-        # Support multi-inheritance and mixins for subclasses
+        # Support================================")
         super(BaseAgent, self).__init__()
 
         logger.debug(f"Created {__class__} '{self.ai_profile.ai_name}'")
+    
 
     def set_id(self, new_id: str, new_agent_dir: Optional[Path] = None):
         self.state.agent_id = new_id
@@ -246,8 +248,8 @@ class BaseAgent(Configurable[BaseAgentSettings], ABC):
 
         prompt: ChatPrompt = self.build_prompt(scratchpad=self._prompt_scratchpad)
         prompt = self.on_before_think(prompt, scratchpad=self._prompt_scratchpad)
+        logger.info(f"[ {__file__} ] | Executing prompt:\n{dump_prompt(prompt)}")
 
-        logger.debug(f"Executing prompt:\n{dump_prompt(prompt)}")
         response = await self.llm_provider.create_chat_completion(
             prompt.messages,
             functions=get_openai_command_specs(
@@ -263,6 +265,7 @@ class BaseAgent(Configurable[BaseAgentSettings], ABC):
                 scratchpad=self._prompt_scratchpad,
             ),
         )
+        logger.info(f"[ {__file__} ] | Response from prompt:\n{response}")
         self.config.cycle_count += 1
 
         return self.on_response(
@@ -374,8 +377,8 @@ class BaseAgent(Configurable[BaseAgentSettings], ABC):
                 message_to_add, self.llm.name
             )
             if current_tokens_used + tokens_to_add > self.send_token_limit:
-                logger.debug(f"Plugin response too long, skipping: {plugin_response}")
-                logger.debug(f"Plugins remaining at stop: {plugin_count - i}")
+                logger.info(f"Plugin response too long, skipping: {plugin_response}")
+                logger.info(f"Plugins remaining at stop: {plugin_count - i}")
                 break
             prompt.messages.insert(
                 -1, message_to_add

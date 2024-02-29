@@ -47,23 +47,23 @@ def finish(reason: str, agent: Agent) -> None:
     raise AgentTerminated(reason)
 
 
-@command(
-    "hide_context_item",
-    "Hide an open file, folder or other context item, to save memory.",
-    {
-        "number": JSONSchema(
-            type=JSONSchema.Type.INTEGER,
-            description="The 1-based index of the context item to hide",
-            required=True,
-        )
-    },
-    available=lambda a: bool(get_agent_context(a)),
-)
-def close_context_item(number: int, agent: Agent) -> str:
-    assert (context := get_agent_context(agent)) is not None
+# @command(
+#     "hide_context_item",
+#     "Hide an open file, folder or other context item, to save memory.",
+#     {
+#         "number": JSONSchema(
+#             type=JSONSchema.Type.INTEGER,
+#             description="The 1-based index of the context item to hide",
+#             required=True,
+#         )
+#     },
+#     available=lambda a: bool(get_agent_context(a)),
+# )
+# def close_context_item(number: int, agent: Agent) -> str:
+#     assert (context := get_agent_context(agent)) is not None
 
-    if number > len(context.items) or number == 0:
-        raise InvalidArgumentError(f"Index {number} out of range")
+#     if number > len(context.items) or number == 0:
+#         raise InvalidArgumentError(f"Index {number} out of range")
 
-    context.close(number)
-    return f"Context item {number} hidden ✅"
+#     context.close(number)
+#     return f"Context item {number} hidden ✅"

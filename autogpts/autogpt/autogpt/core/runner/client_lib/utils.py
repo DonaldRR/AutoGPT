@@ -57,6 +57,6 @@ def handle_exceptions(
 def coroutine(f: Callable[P, Coroutine[Any, Any, T]]) -> Callable[P, T]:
     @functools.wraps(f)
     def wrapper(*args: P.args, **kwargs: P.kwargs):
-        return asyncio.run(f(*args, **kwargs))
+        return asyncio.run(f(*args, **kwargs), debug=True)
 
     return wrapper

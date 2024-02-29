@@ -1,3 +1,3 @@
 #!/bin/bash
 
-flutter build web --base-href /app/
+flutter build web --base-href /app/ --verbose

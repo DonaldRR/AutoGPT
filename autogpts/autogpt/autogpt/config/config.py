@@ -120,6 +120,7 @@ class Config(SystemSettings, arbitrary_types_allowed=True):
         default=True,
         from_env=lambda: os.getenv("WIPE_REDIS_ON_START", "True") == "True",
     )
+    db_type: str = UserConfigurable("AGENT_DB", from_env="DB_TYPE")
 
     ############
     # Commands #

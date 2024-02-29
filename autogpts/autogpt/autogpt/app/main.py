@@ -32,6 +32,7 @@ from autogpt.config import (
 )
 from autogpt.core.resource.model_providers.openai import OpenAIProvider
 from autogpt.core.runner.client_lib.utils import coroutine
+from autogpt.core.memory import configure_db
 from autogpt.logs.config import configure_chat_plugins, configure_logging
 from autogpt.logs.helpers import print_attribute, speak
 from autogpt.plugins import scan_plugins
@@ -49,6 +50,7 @@ from .utils import (
     print_python_version_info,
 )
 
+logger = logging.getLogger(__name__)
 
 @coroutine
 async def run_auto_gpt(
@@ -313,6 +315,7 @@ async def run_auto_gpt(
 
         agent.state.save_to_json_file(agent.file_manager.state_file_path)
 
+from autogpt.core.routes.api import m_router
 
 @coroutine
 async def run_auto_gpt_server(
@@ -328,9 +331,8 @@ async def run_auto_gpt_server(
     install_plugin_deps: bool = False,
 ):
     from .agent_protocol_server import AgentProtocolServer
-
+    from .m_agent_protocol_server import MTAgentProtocolServer
     config = ConfigBuilder.build_config_from_env()
-
     # TODO: fill in llm values here
     assert_config_has_openai_api_key(config)
 
@@ -361,13 +363,20 @@ async def run_auto_gpt_server(
     config.plugins = scan_plugins(config)
 
     # Set up & start server
-    database = AgentDB(
-        database_string=os.getenv("AP_SERVER_DB_URL", "sqlite:///data/ap_server.db"),
-        debug_enabled=debug,
-    )
-    server = AgentProtocolServer(
+    # database = configure_db("AgentDB")
+    database = configure_db(config.db_type)
+    logger.debug(f"Init database {database}")
+    # database = AgentDB(
+    #     database_string=DATABASE_SERVER_URL,
+    #     debug_enabled=debug,
+    # )
+    # server = AgentProtocolServer(
+    #     app_config=config, database=database, llm_provider=llm_provider
+    # )
+    server = MTAgentProtocolServer(
         app_config=config, database=database, llm_provider=llm_provider
     )
+    # logger.debug(f"Router:{m_router}")
     await server.start()
 
 
